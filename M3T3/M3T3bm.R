@@ -88,16 +88,18 @@ trData.waps.3 <- trData.waps.3.dist
 # -5- #
 # ___ modell: KNN,
 set.seed(1111)
+
+### training control: 10-fold cross-validation
+trControl <- trainControl(method = "cv", number = 10) # training control: 10-fold cross-validation
+grid <- expand.grid(k = c(2,3,4,5))
+
 l <- length(trData.3)
+
 ## BUILDINGID
 trData.3m <- trData.3[,1:(l-9)]
 trData.3m <- cbind(trData.3m, trData.3$BUILDINGID)
 names(trData.3m)[length(trData.3m)] <- "BUILDINGID"
 trData.3m$BUILDINGID = factor(trData.3m$BUILDINGID)
-
-# training control: 10-fold cross-validation
-trControl <- trainControl(method = "cv", number = 10) # training control: 10-fold cross-validation
-grid <- expand.grid(k = c(2,3,4,5))
 
 ### train model: knn(BUILDINGID ~ .), data = trData.3m 
 BuildingKNN <- train(
@@ -113,32 +115,26 @@ beep();
 ## BUILDING & FLOOR
 trData.3m <- trData.3[,1:(l-9)]
 
-### as numerical (integer) var
-# trData.3m <- cbind(trData.3m, as.integer(trData.3$BUILDINGID), as.integer(trData.3$FLOOR))
+#### build composed integer from integers building and floor
+trData.3m$BF <- as.integer(trData.3$BUILDINGID)*10+as.integer(trData.3$FLOOR)
+#### convert integer to factor
+trData.3m$BF <- as.factor(trData.3m$BF)
+
+# ### as composed factors
+# trData.3m <- cbind(trData.3m, as.factor(trData.3$BUILDINGID), as.factor(trData.3$FLOOR))
 # names(trData.3m)[length(trData.3m)-1] <- "BUILDINGID"
 # names(trData.3m)[length(trData.3m)] <- "FLOOR"
-
-#### build composed integer from integers building and floor
-trData.3m$BID_FL <- as.integer(trData.3$BUILDINGID)*10+as.integer(trData.3$FLOOR)
-
-#### convert integer to factor
-trData.3m$BID_FL <- as.factor(trData.3m$BID_FL)
-
-### as composed factors
-trData.3m <- cbind(trData.3m, as.factor(trData.3$BUILDINGID), as.factor(trData.3$FLOOR))
-names(trData.3m)[length(trData.3m)-1] <- "BUILDINGID"
-names(trData.3m)[length(trData.3m)] <- "FLOOR"
-
-### build composed factor from factors building and floor
-trData.3m$BID.FL <- with(trData.3m, interaction(BUILDINGID,  FLOOR))
-
-#### drop aux cols
-ind <- c(length(trData.3m)-2,length(trData.3m)-1)
-trData.3m <- trData.3m[,-ind] 
+#
+# ### build composed factor from factors building and floor
+# trData.3m$BID.FL <- with(trData.3m, interaction(BUILDINGID,  FLOOR))
+# 
+# #### drop aux cols
+# ind <- c(length(trData.3m)-2,length(trData.3m)-1)
+# trData.3m <- trData.3m[,-ind] 
 
 ### train model: knn(BID.FL ~ .), data = trData.3m 
-BuidFloorKNN <- train(
-  BID_FL ~ ., 
+BuildFloorKNN <- train(
+  BF ~ ., 
   data = trData.3m,
   method = "knn",
   trControl = trControl,
@@ -147,23 +143,46 @@ BuidFloorKNN <- train(
 beep();
 shell.exec("https://www.youtube.com/watch?v=QDKBDduuJ_0")
 
-### explore results of the KNN
+
+## BUILDING & FLOOR & SPACE
+trData.3m <- trData.3[,1:(l-9)]
+
+#### build composed integer from integers building and floor
+trData.3m$BFS <- as.integer(trData.3$BUILDINGID)*10000+as.integer(trData.3$FLOOR)*1000+as.integer(trData.3$SPACEID)
+#### convert integer to factor
+trData.3m$BFS <- as.factor(trData.3m$BFS)
+
+### train model: knn(BID.FL ~ .), data = trData.3m 
+BuildFloorSpaceKNN <- train(
+  BFS ~ ., 
+  data = trData.3m,
+  method = "knn",
+  trControl = trControl,
+  tuneGrid=grid
+)
+beep();
+shell.exec("https://www.youtube.com/watch?v=QDKBDduuJ_0")
+
+## explore results of the KNN
 print(BuildingKNN)
-print(BuidFloorKNN)
+print(BuildFloorSpaceKNN)
 
-# resamps <- resamples(list(knn = BuildingKNN))
-# summary(resamps)
 
-### prediction on training data and plotting: KNN ####
+## prediction on training data and plotting: KNN ####
 trData.3p <- trData.3m
+
 trData.3p$predBuilding <- predict(BuildingKNN, trData.3p)
 trData.3p$predFloor <- predict(FloorKNN, trData.3p)
 
 trData.3p <- trData.0
+trData.3p$BF <- as.integer(trData.3p$BUILDINGID)*10+as.integer(trData.3p$FLOOR)
+trData.3p$BF <- as.factor(trData.3p$BF)
+
 trData.3p$predBuilding <- predict(BuildingKNN, trData.3p)
 trData.3p$predFloor <- predict(FloorKNN, trData.3p)
+trData.3p$predBF <- predict(BuildFloorKNN, trData.3p)
 
-### compute errors
+## compute errors
 trData.3p$predBuilding <- as.numeric(trData.3p$predBuilding)
 trData.3p$BUILDINGID <- as.numeric(trData.3p$BUILDINGID)
 sum((trData.3p$predBuilding-trData.3p$BUILDINGID)!=0)
@@ -171,6 +190,10 @@ sum((trData.3p$predBuilding-trData.3p$BUILDINGID)!=0)
 trData.3p$predFloor <- as.numeric(trData.3p$predFloor)
 trData.3p$FLOOR <- as.numeric(trData.3p$FLOOR)
 sum((trData.3p$predFloor-trData.3p$FLOOR)!=0)
+
+trData.3p$predBF <- as.numeric(trData.3p$predBF)
+trData.3p$BF <- as.numeric(trData.3p$BF)
+sum((trData.3p$predBF-trData.3p$BF)!=0) / nrow(trData.3p) * 100
 
 ## plotting results KNN
 plot(predBuilding ~ BUILDINGID, data=trData.3p, pch=16)
