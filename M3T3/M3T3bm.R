@@ -90,8 +90,8 @@ trData.waps.3 <- trData.waps.3.dist
 set.seed(1111)
 
 ### training control: 10-fold cross-validation
-trControl <- trainControl(method = "cv", number = 10) # training control: 10-fold cross-validation
-grid <- expand.grid(k = c(2,3,4,5))
+trControl <- trainControl(method = "cv", number = 5) # training control: 10-fold cross-validation
+grid <- expand.grid(k = c(2,3,4,5,6))
 
 l <- length(trData.3)
 
@@ -167,20 +167,21 @@ shell.exec("https://www.youtube.com/watch?v=QDKBDduuJ_0")
 print(BuildingKNN)
 print(BuildFloorSpaceKNN)
 
-
 ## prediction on training data and plotting: KNN ####
 trData.3p <- trData.3m
-
 trData.3p$predBuilding <- predict(BuildingKNN, trData.3p)
 trData.3p$predFloor <- predict(FloorKNN, trData.3p)
 
 trData.3p <- trData.0
 trData.3p$BF <- as.integer(trData.3p$BUILDINGID)*10+as.integer(trData.3p$FLOOR)
 trData.3p$BF <- as.factor(trData.3p$BF)
+trData.3p$BFS <- as.integer(trData.3p$BUILDINGID)*10000+as.integer(trData.3p$FLOOR)*1000+as.integer(trData.3p$SPACEID)
+trData.3p$BFS <- as.factor(trData.3p$BFS)
 
 trData.3p$predBuilding <- predict(BuildingKNN, trData.3p)
 trData.3p$predFloor <- predict(FloorKNN, trData.3p)
 trData.3p$predBF <- predict(BuildFloorKNN, trData.3p)
+trData.3p$predBFS <- predict(BuildFloorSpaceKNN, trData.3p)
 
 ## compute errors
 trData.3p$predBuilding <- as.numeric(trData.3p$predBuilding)
