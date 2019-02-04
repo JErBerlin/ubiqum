@@ -22,11 +22,15 @@ trData = read.csv(
 ### cols corresponding to waps are 1:520
 trData.waps <- trData[,1:520]
 
-# -0- # --> to use for prediction
-# _____replace 100's (no signal) #
-# replace 100 by -110 in the main dataframe
+# -0- # 
+# _____to use for prediction
+## replace 100's (no signal) 
+## replace 100 by -110 in the main dataframe
 trData.0<-trData
 trData.0[trData.0==100]<--110
+## convert vars LATITUDE and LONGITUDE to integers
+trData$LATITUDE  <- as.integer(trData$LATITUDE)
+trData$LONGITUDE <- as.integer(trData$LONGITUDE)
 
 # -1- # 
 # _____clean of empty rows and cols #
@@ -96,6 +100,9 @@ trControl <- trainControl(method = "cv", number = 5) # training control: 5-fold 
 ## LATITUDE + LONGITUDE
 l <- length(trData.3)
 trData.3m <- trData.3[,1:(l-9)]
+## convert vars LATITUDE and LONGITUDE to integers
+trData.3$LATITUDE  <- as.integer(trData.3$LATITUDE)
+trData.3$LONGITUDE <- as.integer(trData.3$LONGITUDE)
 trData.3m <- cbind(trData.3m, trData.3$LATITUDE, trData.3$LONGITUDE)
 names(trData.3m)[l-9+1] <- "LONGITUDE"
 names(trData.3m)[l-9+2] <- "LATITUDE"
