@@ -1,7 +1,6 @@
 #### approach B: 
 #
 # - exclude variables with too low variability
-# - exclude correlated observations
 # - modell
 #
 ####
@@ -75,6 +74,8 @@ trData.3 <- trData.2[,c(ind.3,rep(TRUE,9))]
 # -3 bis- #
 ###drop the rows that are equal (f.ex. all NA)
 trData.waps.3.dist <- distinct(trData.waps.3)
+
+ind <- apply(trData.waps.3.dist,1,max)
 
 ### drop the corresponding rows of the main dataframe ## <-- optimize!
 l <- length(trData.3)
