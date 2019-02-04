@@ -91,38 +91,43 @@ trData.3 <- trData.3.dist
 trData.waps.3 <- trData.waps.3.dist
 
 # -5- #
-# ___ modell: LM
+# ___ model: KNN
 set.seed(1111)
 
 ### training control: 10-fold cross-validation
 trControl <- trainControl(method = "cv", number = 5) # training control: 5-fold cross-validation
+grid <- expand.grid(k = c(2,3))
 
 ## LATITUDE + LONGITUDE
 l <- length(trData.3)
 trData.3m <- trData.3[,1:(l-9)]
-## convert vars LATITUDE and LONGITUDE to integers
+## convert vars LATITUDE and LONGITUDE to integers and then to factors
 trData.3$LATITUDE  <- as.integer(trData.3$LATITUDE)
+trData.3$LATITUDE  <- as.factor(trData.3$LATITUDE)
 trData.3$LONGITUDE <- as.integer(trData.3$LONGITUDE)
+trData.3$LONGITUDE <- as.factor(trData.3$LONGITUDE)
 trData.3m <- cbind(trData.3m, trData.3$LATITUDE, trData.3$LONGITUDE)
 names(trData.3m)[l-9+1] <- "LONGITUDE"
 names(trData.3m)[l-9+2] <- "LATITUDE"
 
-### train model: lm(LATITUDE ~ .), data = trData.3m 
-LatLM <- train(
+### train model: KNN(LATITUDE ~ .), data = trData.3m 
+LatKNN <- train(
   LATITUDE ~ ., 
   data = trData.3m,
-  method = "lm",
-  trControl = trControl
+  method = "knn",
+  trControl = trControl,
+  tuneGrid=grid
 )
 beep();
 # shell.exec("https://www.youtube.com/watch?v=QDKBDduuJ_0")
 
-### train model: lm(LONGITUDE ~ .), data = trData.3m 
-LonLM <- train(
+### train model: KNN(LONGITUDE ~ .), data = trData.3m 
+LonKNN <- train(
   LONGITUDE ~ ., 
   data = trData.3m,
-  method = "lm",
-  trControl = trControl
+  method = "knn",
+  trControl = trControl,
+  tuneGrid=grid
 )
 beep();
 # shell.exec("https://www.youtube.com/watch?v=QDKBDduuJ_0")

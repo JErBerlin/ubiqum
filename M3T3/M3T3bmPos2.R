@@ -1,6 +1,6 @@
 #### approach B: 
 #
-# - exclude variables with too low variability
+# disabled: (- exclude variables with too low variability)
 # - model position (latitude, longitude)
 #
 ####
@@ -98,6 +98,17 @@ set.seed(1111)
 trControl <- trainControl(method = "cv", number = 5) # training control: 5-fold cross-validation
 
 ## LATITUDE + LONGITUDE
+### using pre-proces until step 2
+l <- length(trData.2)
+trData.2m <- trData.2[,1:(l-9)]
+## convert vars LATITUDE and LONGITUDE to integers
+trData.2$LATITUDE  <- as.integer(trData.2$LATITUDE)
+trData.2$LONGITUDE <- as.integer(trData.2$LONGITUDE)
+trData.2m <- cbind(trData.2m, trData.2$LATITUDE, trData.2$LONGITUDE)
+names(trData.2m)[l-9+1] <- "LONGITUDE"
+names(trData.2m)[l-9+2] <- "LATITUDE"
+
+### using pre-proces until step 3
 l <- length(trData.3)
 trData.3m <- trData.3[,1:(l-9)]
 ## convert vars LATITUDE and LONGITUDE to integers
@@ -110,7 +121,7 @@ names(trData.3m)[l-9+2] <- "LATITUDE"
 ### train model: lm(LATITUDE ~ .), data = trData.3m 
 LatLM <- train(
   LATITUDE ~ ., 
-  data = trData.3m,
+  data = trData.2m,
   method = "lm",
   trControl = trControl
 )
@@ -120,7 +131,7 @@ beep();
 ### train model: lm(LONGITUDE ~ .), data = trData.3m 
 LonLM <- train(
   LONGITUDE ~ ., 
-  data = trData.3m,
+  data = trData.2m,
   method = "lm",
   trControl = trControl
 )
@@ -136,15 +147,16 @@ print(LonLM)
 # trData.3p$predLat <- predict(LatLM, trData.3p)
 # trData.3p$predLond <- predict(LonLM, trData.3p)
 
-trData.3p <- trData.0
-trData.3p$predLat <- predict(LatLM, trData.3p)
-trData.3p$predLond <- predict(LonLM, trData.3p)
+trData.2p <- trData.2m
+trData.2p$predLat <- predict(LatLM, trData.2p)
+trData.2p$predLon <- predict(LonLM, trData.2p)
 
 ## compute errors
 
 ## plotting results
-plot(predLat ~ LATITUDE, data=trData.3p, pch=16)
-points(trData.3p$predLon ~ trData.3p$LONGITUDE, col = "red", pch=4)
+plot(predLat ~ LATITUDE, data=trData.2p, pch=16)
+
+plot(predLon ~ LONGITUDE, data=trData.2p, pch=16)
 
 ############################ tools
 
