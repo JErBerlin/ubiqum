@@ -92,7 +92,7 @@ set.seed(1111)
 
 ### training control: 10-fold cross-validation
 trControl <- trainControl(method = "cv", number = 5) # training control: 10-fold cross-validation
-grid <- expand.grid(k = c(2,3,4,5,6))
+grid <- expand.grid(k = c(1,2,3,5))
 
 l <- length(trData.3)
 
@@ -103,6 +103,8 @@ names(trData.3m)[length(trData.3m)] <- "BUILDINGID"
 trData.3m$BUILDINGID = factor(trData.3m$BUILDINGID)
 
 ### train model: knn(BUILDINGID ~ .), data = trData.3m 
+start_time <- Sys.time()
+
 BuildingKNN <- train(
   BUILDINGID ~ ., 
   data = trData.3m,
@@ -110,6 +112,9 @@ BuildingKNN <- train(
   trControl = trControl,
   tuneGrid=grid
 )
+
+end_time <- Sys.time()
+print(end_time - start_time)
 beep();
 # shell.exec("https://www.youtube.com/watch?v=QDKBDduuJ_0")
 
@@ -166,6 +171,9 @@ shell.exec("https://www.youtube.com/watch?v=QDKBDduuJ_0")
 
 ## explore results of the KNN
 print(BuildingKNN)
+
+#### for comparison: (Thanasis) dim=(19000,3) Accuracy: 0.9974 | Kappa: 0.9959  
+
 print(BuildFloorSpaceKNN)
 
 ## prediction on training data and plotting: KNN ####
