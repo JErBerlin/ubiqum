@@ -1,4 +1,4 @@
-#### M3T3posKNNnum.R -- approach B: 
+#### approach B: 
 #
 # - exclude variables with too low variability
 # - model position (latitude, longitude) as numeric (integers)
@@ -7,13 +7,10 @@
 ####
 
 # load libraries ####
-library(dplyr)
-library(caret)
-
 library(reshape2)
 library(ggplot2)
-library(raster) 
-
+library(dplyr)
+library(caret)
 library(beepr)
 
 # read data ####
@@ -49,7 +46,6 @@ trData$LONGITUDE <- as.integer(trData$LONGITUDE)
 vlData$LATITUDE  <- as.integer(vlData$LATITUDE)
 vlData$LONGITUDE <- as.integer(vlData$LONGITUDE)
 
-
 # -1- # 
 # _____clean of empty rows and cols #
 ## keep only WASP cols that have NOT all values 100 (no signal) 
@@ -84,21 +80,15 @@ trData.waps.2[trData.waps.1==100]<-NA
 # -3- #
 ## compute variance by variable
 # varCol <- apply(trData.waps.2,2,var,na.rm=T)
-# hist(varCol,breaks=175)
-# sum(varCol < 200, na.rm=T) ## 400 (23 NA)
-# sum(varCol < 150, na.rm=T) ## 334 (23 NA)
+# hist(varCol,breaks=100)
 # sum(varCol < 100, na.rm=T) ## 237 (23 NA)
-# sum(varCol < 75, na.rm=T) ## 212 (23 NA)
 # sum(varCol < 50, na.rm=T) ## 195 (23 NA)
 # sum(varCol < 25, na.rm=T) ## 151 (23 NA)
-# sum(varCol < 15, na.rm=T) ## 112  (23 NA)
 # sum(varCol < 10, na.rm=T) ## 80  (23 NA)
-# sum(varCol < 5, na.rm=T) ## 62  (23 NA)
 
-## keep only WAPS cols that have var > 75 -> varCut
+## keep only WAPS cols that have var > 75
 ### make an index
-varCut <- 75
-ind.3 <- sapply(trData.waps.2,var,na.rm=T) > varCut
+ind.3 <- sapply(trData.waps.2,var,na.rm=T) > 75
 ind.3[is.na(ind.3)] <- FALSE  ## Don't count NAs
 ### select cols after index
 trData.waps.3 <- trData.waps.2[,ind.3]
@@ -118,25 +108,25 @@ trData.3 <- trData.2[!ind,]
 
 ### prepare next steps (shorten names)
 trData.waps.3 <- trData.waps.3.dist
-# dim(trData.3)
-# dim(vlData.2)
+dim(trData.3)
+dim(vlData.2)
 
 # -5- #
-# ___ model: KNN
+# ___ model: RF
 set.seed(1111)
 
 # model training ####
 
 ### training control:
 #### none
-trControl <- trainControl(method="none")
+# trControl <- trainControl(method="none")
 
 #### n-fold cross-validation
-# trControl <- trainControl(method = "cv", number = 5) # training control: 5-fold CV
+trControl <- trainControl(method = "cv", number = 5) # training control: 5-fold CV
 # tuneGrid <- expand.grid(k = c(1,3,10)) # grid <- expand.grid(k = c(1,2,3,4,5))
 
 #### model parameters
-tuneGrid <- data.frame(k=3) #### model KNN: k=3
+tuneGrid <- data.frame() #### model RF:
 
 ## LATITUDE + LONGITUDE
 l <- length(trData.3)
@@ -146,43 +136,43 @@ names(trData.3m)[l-9+1] <- "LONGITUDE"
 names(trData.3m)[l-9+2] <- "LATITUDE"
 
 ### split test and training set <-- skip
-intrain<-createDataPartition(y=trData.3m$LATITUDE,p=0.8,list=FALSE)
-trainData.3m <-trData.3m[intrain,]
-testData.3m <-trData.3m[-intrain,]
-# trainData.3m <-trData.3m
+# intrain<-createDataPartition(y=trData.3m$LATITUDE,p=0.8,list=FALSE)
+# trainData.3m <-trData.3m[intrain,]
+# testData.3m <-trData.3m[-intrain,]
+trainData.3m <-trData.3m
 
-### train model: knn(LATITUDE ~ .), data = trData.3m 
+### train model: rf(LATITUDE ~ .), data = trData.3m 
 
 start_time <- Sys.time()
-LatKNN <- train(
+LatRF <- train(
   LATITUDE ~ ., 
   data = trainData.3m,
-  method = "knn",
-  trControl = trControl,
-  tuneGrid = tuneGrid
+  method = "rf",
+  trControl = trControl
+  # tuneGrid = tuneGrid
 )
 end_time <- Sys.time()
 print(end_time - start_time)
 beep();
 
-### train model: knn(LONGITUDE ~ .), data = trData.3m 
+### train model: rf(LONGITUDE ~ .), data = trData.3m 
 start_time <- Sys.time()
-LonKNN <- train(
+LonRF <- train(
   LONGITUDE ~ ., 
   data = trainData.3m,
-  method = "knn",
-  trControl = trControl,
-  tuneGrid = tuneGrid
+  method = "rf",
+  trControl = trControl
+  # tuneGrid = tuneGrid
 )
 end_time <- Sys.time()
 print(end_time - start_time)
 beep();
 
 # model evaluation ####
-
+ 
 ## explore results of the model
-print(LatKNN)
-print(LonKNN)
+print(LatRF)
+print(LonRF)
 
 ## prediction
 ### prediction on training data
@@ -197,28 +187,26 @@ vlData.p <- vlData.2
 # vlData.p <- testData.3m
 
 start_time <- Sys.time()
-vlData.p$predLat <- predict(LatKNN, vlData.p)
+vlData.p$predLat <- predict(LatRF, vlData.p)
 end_time <- Sys.time()
 print(end_time - start_time)
 beep();
 
 start_time <- Sys.time()
-vlData.p$predLon <- predict(LonKNN, vlData.p)
+vlData.p$predLon <- predict(LonRF, vlData.p)
 end_time <- Sys.time()
 print(end_time - start_time)
 beep();
 
 ## compute errors
-postResample(vlData.p$predLat, vlData.p$LATITUDE)
-postResample(vlData.p$predLon, vlData.p$LONGITUDE)
 
 diffLON <- abs(vlData.p$LONGITUDE - vlData.p$predLon)
 diffLAT <- abs(vlData.p$LATITUDE - vlData.p$predLat)
 
 diffEUC <- sqrt(diffLON^2 + diffLAT^2)
-hist(diffEUC, breaks=90, main='KNN k=3, varCut=75')
+hist(diffEUC, breaks=90, main='RF')
 
-print("Metrics for KNN, k=3")
+print("Metrics for RF")
 
 mean(diffEUC)
 median(diffEUC)
@@ -230,48 +218,7 @@ quantile(diffEUC, 0.95)
 quantile(diffEUC, 0.99)
 
 ## plotting results
-
-### write euclidian dist errors as a new col in the df prediction
-vlData.p <- cbind(vlData.p, diffEUC)
-
-### classificate errors in 4 classes: <5, <10, <20, > 20 error
-### write as a new col in the df prediction
-getEUCclass <- function(x) {
-  if(x < 5) return(as.integer(5))
-  if(x < 10) return(as.integer(10));
-  if(x < 20) return(as.integer(20));
-  if(x >= 20) return(as.integer(40));
-  return(NA);
-}
-# clEUC <- sapply(diffEUC, getEUCclass)
-# vlData.p <- cbind(vlData.p, diffEUC)
-vlData.p <- vlData.p %>% mutate(clErr = sapply(diffEUC, getEUCclass))
-
-qplot(LATITUDE, predLat, data=vlData.p, color = clErr)
-qplot(LONGITUDE, predLon, data=vlData.p, color = clErr)
-
-qplot(predLat, predLon, data=vlData.p, color = clErr)
-qplot(LATITUDE, LONGITUDE, data=vlData.p, color = clErr)
-
 # plot(predLat ~ predLon, col="red", data=vlData.p, pch=16)
 # points(vlData.p$LATITUDE ~ vlData.p$LONGITUDE, col = "black", pch=4)
 
-############################ tools ####
-
-hist(vlData.2$PHONEID,breaks=25, xlim = c(1,25))
-hist(trData.3$PHONEID,breaks=25, xlim = c(1,25))
-
-hist(vlData.2$BUILDINGID, xlim = c(0,2))
-hist(trData.3$BUILDINGID, xlim = c(0,2))
-
-hist(vlData.2$FLOOR,breaks=4, xlim = c(0,4))
-hist(trData.3$FLOOR,breaks=4, xlim = c(0,4))
-
-### cols corresponding to waps are 1:520
-l <- length(vlData.2)
-vlData.2.waps <- vlData.2[,1:(l-9)]
-l <- length(trData.3)
-trData.3.waps <- trData.3[,1:(l-9)]
-
-plot(raster(as.matrix(vlData.2.waps)),main="vlData.2.waps", useRaster=F)
-plot(raster(as.matrix(trData.3.waps)),main="trData.3.waps", useRaster=F)
+############################ tools
