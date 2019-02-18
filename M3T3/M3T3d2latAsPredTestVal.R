@@ -34,6 +34,8 @@ vlData = read.csv(
   file ="validationData.csv", 
   header=T)
 
+## use validation as training and test
+trData <- vlData
 
 # pre-process data ####
 ## aux dataframes
@@ -218,7 +220,7 @@ names(trData.3m)[l-9+1] <- "LATITUDE"
 names(trData.3m)[l-9+2] <- "LONGITUDE"
 
 ### split test and training set: index intrain
-intrain<-createDataPartition(y=trData.3$LATITUDE,p=0.95,list=FALSE)
+intrain<-createDataPartition(y=trData.3$LATITUDE,p=0.98,list=FALSE)
 
 ## LATITUDE 
 trData.3mLat <- trData.3[,1:(l-9)]
@@ -323,15 +325,15 @@ beep();
 # trData.3pLon <- trainData.3mLon
 
 ##### prediction on test data
-# trData.3p <- testData.3m
-# trData.3pLat <- testData.3m
-# trData.3pLon <- testData.3m
+trData.3p <- testData.3m
+trData.3pLat <- testData.3m
+trData.3pLon <- testData.3m
 
 ##### prediction on validation data 
-trData.3p <- vlData.2    ## hier write predictions of both Lat and Lon
-                         ## as predLat1 and predLon1
-trData.3pLat <- vlData.2 ## -- write predictions of Lat as LATITUDE (overwriting)
-trData.3pLon <- vlData.2 ## -- write predictions of Lon as LONGITUDE (overwriting)
+# trData.3p <- vlData.2    ## hier write predictions of both Lat and Lon
+#                          ## as predLat1 and predLon1
+# trData.3pLat <- vlData.2 ## -- write predictions of Lat as LATITUDE (overwriting)
+# trData.3pLon <- vlData.2 ## -- write predictions of Lon as LONGITUDE (overwriting)
 
 ### make predictions (predLat, predLon) to use during modeling
 
@@ -384,28 +386,28 @@ print(end_time - start_time)
 beep();
 
 ## predict Lon: using predLat2 and Waps from trData.3pLat
-# trData.3pLat$LATITUDE <- trData.3p$predLat2 
-# start_time <- Sys.time()
-# trData.3p$predLon3 <- predict(LonKNN2, trData.3pLat)
-# end_time <- Sys.time()
-# print(end_time - start_time)
-# beep();
+trData.3pLat$LATITUDE <- trData.3p$predLat2
+start_time <- Sys.time()
+trData.3p$predLon3 <- predict(LonKNN2, trData.3pLat)
+end_time <- Sys.time()
+print(end_time - start_time)
+beep();
 
 ## compute errors
 postResample(trData.3p$predLat1, trData.3p$LATITUDE)
-postResample(trData.3p$predLon1, trData.3p$LONGITUDE)
-
-postResample(trData.3p$predLat2, trData.3p$LATITUDE)
+# postResample(trData.3p$predLon1, trData.3p$LONGITUDE)
+# 
+# postResample(trData.3p$predLat2, trData.3p$LATITUDE)
 postResample(trData.3p$predLon2, trData.3p$LONGITUDE)
-
-postResample(trData.3p$predLat3, trData.3p$LATITUDE)
+# 
+# postResample(trData.3p$predLat3, trData.3p$LATITUDE)
 # postResample(trData.3p$predLon3, trData.3p$LONGITUDE)
 
-### --> best results: with predLat3 and predLon2
+### --> best results: with predLat1 and predLon2
 
-## Compute Errors: using predLat3 and predLon2
+## Compute Errors: using predLat1 and predLon2
 
-diffLAT <- abs(trData.3p$LATITUDE - trData.3p$predLat3)
+diffLAT <- abs(trData.3p$LATITUDE - trData.3p$predLat1)
 diffLON <- abs(trData.3p$LONGITUDE - trData.3p$predLon2)
 
 diffEUC <- sqrt(diffLON^2 + diffLAT^2)
@@ -422,7 +424,7 @@ quantile(diffEUC, 0.90)
 quantile(diffEUC, 0.95)
 quantile(diffEUC, 0.99)
 
-## plotting results
+## plotting results ####
 
 ### write euclidian dist errors as a new col in the df prediction
 vlData.p <- cbind(vlData.p, diffEUC)
@@ -471,43 +473,33 @@ plot(raster(as.matrix(trData.3.waps)),main="trData.3.waps", useRaster=F)
 
 
 ############################ results ####
-# > ## compute errors
-#   > postResample(trData.3p$predLat1, trData.3p$LATITUDE)
+# > ## Compute Errors: using predLat1 and predLon2
+# > postResample(trData.3p$predLat1, trData.3p$LATITUDE)
 # RMSE  Rsquared       MAE 
-# 8.0642764 0.9868474 5.1032103 
-# > postResample(trData.3p$predLon1, trData.3p$LONGITUDE)
-# RMSE  Rsquared       MAE 
-# 8.3421672 0.9952084 5.3157066 
-# > postResample(trData.3p$predLat2, trData.3p$LATITUDE)
-# RMSE  Rsquared       MAE 
-# 8.2888631 0.9861157 5.1152865 
+# 6.6021882 0.9923637 4.9333333 
+# 
 # > postResample(trData.3p$predLon2, trData.3p$LONGITUDE)
 # RMSE  Rsquared       MAE 
-# 8.2471601 0.9953181 5.1882838 
-# > postResample(trData.3p$predLat3, trData.3p$LATITUDE)
-# RMSE Rsquared      MAE 
-# 7.775415 0.987771 4.953720 
-# > diffLAT <- abs(trData.3p$LATITUDE - trData.3p$predLat3)
-# > diffLON <- abs(trData.3p$LONGITUDE - trData.3p$predLon2)
-# > diffEUC <- sqrt(diffLON^2 + diffLAT^2)
-# > hist(diffEUC, breaks=90, main='KNN k=3, varCut=75')
-# > print("Metrics for VAR > 75, top 5 WAPS, KNN (k=3)")
+# 8.9262410 0.9947328 6.2000000 
+# 
 # [1] "Metrics for VAR > 75, top 5 WAPS, KNN (k=3)"
-# > mean(diffEUC)
-# [1] 7.995697
+# > 
+#   > mean(diffEUC)
+# [1] 8.84944
 # > median(diffEUC)
-# [1] 5.705748
+# [1] 7.07813
 # > max(diffEUC)
-# [1] 79.83594
-# > quantile(diffEUC, 0.75)
+# [1] 26.44071
+# > 
+#   > quantile(diffEUC, 0.75)
 # 75% 
-# 10.80637 
+# 10.02459 
 # > quantile(diffEUC, 0.90)
 # 90% 
-# 17 
+# 17.7381 
 # > quantile(diffEUC, 0.95)
 # 95% 
-# 21.84414 
+# 24.45605 
 # > quantile(diffEUC, 0.99)
 # 99% 
-# 36.55406 
+# 26.04378 

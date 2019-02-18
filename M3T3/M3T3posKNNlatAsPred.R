@@ -227,8 +227,8 @@ beep();
 # print(LatKNN)
 # print(LonKNN)
 # 
-# print(LatKNN2)
-# print(LonKNN2)
+print(LatKNN2)
+print(LonKNN2)
 
 ## predictions -- prepare 2nd round
 
@@ -338,7 +338,7 @@ quantile(diffEUC, 0.90)
 quantile(diffEUC, 0.95)
 quantile(diffEUC, 0.99)
 
-## plotting results
+## plotting results ####
 
 ### write euclidian dist errors as a new col in the df prediction
 vlData.p <- cbind(vlData.p, diffEUC)

@@ -1,15 +1,14 @@
-#### M3T3d2latAsPred.R -- approach B: 
+#### M3T3d2.R -- approach D: 
 #
 # - exclude variables with too low variability
-# - model position (latitude, longitude) as numeric (integers)
 #
 # - standardize RSSI by rows:
 #   -- select 5 highest values
-#   -- standardize
+#   -- NO standardize
 #
+# - model position (latitude, longitude) as numeric (integers)
 # - check with validation set
-# - prediction on waps (1st round) 
-#   and 2nd round on waps+lon (for lat) and on waps+lat (for lon)
+# - correction: prediction exclusively on waps
 #
 ####
 
@@ -33,7 +32,6 @@ trData = read.csv(
 vlData = read.csv(
   file ="validationData.csv", 
   header=T)
-
 
 # pre-process data ####
 ## aux dataframes
@@ -136,14 +134,14 @@ vlData.waps.4 <- cbind(vlData.waps.2, t(max5byRow))
 
 ### keep only the 5 top values per row, else write NA -> trData.waps.5
 #### define the aux function f1 to operate on a row
-f1 <- function(x) {l <- length(x); ind <- (x[1:(l-5)] %in% x[(l-4):l]); x[!ind] <- NA; return(x)}
+  f1 <- function(x) {l <- length(x); ind <- (x[1:(l-5)] %in% x[(l-4):l]); x[!ind] <- NA; return(x)}
 trData.waps.4 <- apply(trData.waps.4, 1, f1)
 
 #### correct the format of the output of apply(): transpose and cast as DF
 trData.waps.4 <- as.data.frame(t(trData.waps.4))
 
 #### drop last 5 auxiliary cols 
-l <- length(trData.waps.4)
+  l <- length(trData.waps.4)
 trData.waps.4 <- trData.waps.4[,1:(l-5)]
 
 # varRow4 <- apply(trData.waps.4, 1, var,na.rm=T)
@@ -168,18 +166,18 @@ trData.waps.5 <- trData.waps.4 + 100
 trData.waps.5[is.na(trData.waps.5)] <- 0
 
 ### divide by maximum of row and mult by 100 (so that all values are in [0,100])
-f2 <- function(x) {
-  M <-max(x,na.rm=T); 
-  return(as.integer(round(x/M,2)*100)); 
-}
-trData.waps.5 <- as.data.frame(t(apply(trData.waps.5, 1, f2)))  
-colnames(trData.waps.5) <- colnames(trData.waps.4)
+#   f2 <- function(x) {
+#     M <-max(x,na.rm=T); 
+#     return(as.integer(round(x/M,2)*100)); 
+#   }
+# trData.waps.5 <- as.data.frame(t(apply(trData.waps.5, 1, f2)))  
+# colnames(trData.waps.5) <- colnames(trData.waps.4)
 
 #### replicate procedure for validation set
 vlData.waps.5 <- vlData.waps.4 + 100
 vlData.waps.5[is.na(vlData.waps.5)] <- 0
-vlData.waps.5 <- as.data.frame(t(apply(vlData.waps.5, 1, f2)))
-colnames(vlData.waps.5) <- colnames(vlData.waps.4)
+# vlData.waps.5 <- as.data.frame(t(apply(vlData.waps.5, 1, f2)))
+# colnames(vlData.waps.5) <- colnames(vlData.waps.4)
 
 ### reconstruct with rest of vars (no WAPs)
 l <- length(trData.3)
@@ -194,8 +192,7 @@ rownames(vlData.5)<- rownames(vlData.2)
 vlData.2 <- vlData.5
 trData.3 <- trData.5
 
-
-# model training -- first round ####
+# model training ####
 # ___ model: KNN
 set.seed(1112)
 
@@ -213,27 +210,30 @@ tuneGrid <- data.frame(k=3) #### model KNN: k=3
 ### training data: trData.3
 l <- length(trData.3)
 trData.3m <- trData.3[,1:(l-9)]
-trData.3m <- cbind(trData.3m, trData.3$LATITUDE, trData.3$LONGITUDE)
+trData.3m <- cbind(trData.3m, trData.3$LATITUDE)
 names(trData.3m)[l-9+1] <- "LATITUDE"
-names(trData.3m)[l-9+2] <- "LONGITUDE"
+
+# trData.3m <- cbind(trData.3m, trData.3$LATITUDE, trData.3$LONGITUDE)
+# names(trData.3m)[l-9+1] <- "LATITUDE"
+# names(trData.3m)[l-9+2] <- "LONGITUDE"
 
 ### split test and training set: index intrain
-intrain<-createDataPartition(y=trData.3$LATITUDE,p=1,list=FALSE)
+# intrain<-createDataPartition(y=trData.3$LATITUDE,p=0.95,list=FALSE)
 
 ## LATITUDE 
-trData.3mLat <- trData.3[,1:(l-9)]
-trData.3mLat <- cbind(trData.3mLat, trData.3$LATITUDE)
-names(trData.3mLat)[l-9+1] <- "LATITUDE"
+# trData.3mLat <- trData.3[,1:(l-9)]
+# trData.3mLat <- cbind(trData.3mLat, trData.3$LATITUDE)
+# names(trData.3mLat)[l-9+1] <- "LATITUDE"
 
 ### split test and training set: trainData + testData 
-trainData.3mLat <-trData.3mLat[intrain,]
-testData.3mLat <-trData.3mLat[-intrain,]
+# trainData.3mLat <-trData.3mLat[intrain,]
+# testData.3mLat <-trData.3mLat[-intrain,]
 
-### train model: knn(LATITUDE ~ .), data = trData.3m 
+### train model: knn(LATITUDE ~ .), data = trData.3mLat
 start_time <- Sys.time()
 LatKNN <- train(
   LATITUDE ~ ., 
-  data = trainData.3mLat,
+  data = trData.3m,
   method = "knn",
   trControl = trControl,
   tuneGrid = tuneGrid,
@@ -244,58 +244,23 @@ print(end_time - start_time)
 beep();
 
 ## LONGITUDE
-trData.3mLon <- trData.3[,1:(l-9)]
-trData.3mLon <- cbind(trData.3mLon, trData.3$LONGITUDE)
-names(trData.3mLon)[l-9+1] <- "LONGITUDE"
+# trData.3mLon <- trData.3[,1:(l-9)]
+# trData.3mLon <- cbind(trData.3mLon, trData.3$LONGITUDE)
+# names(trData.3mLon)[l-9+1] <- "LONGITUDE"
 
 ### split test and training set: trainData + testData 
-trainData.3mLon <-trData.3mLon[intrain,]
-testData.3mLon <-trData.3mLon[-intrain,]
+# trainData.3mLon <-trData.3mLon[intrain,]
+# testData.3mLon <-trData.3mLon[-intrain,]
+
+trData.3m <- trData.3[,1:(l-9)]
+trData.3m <- cbind(trData.3m, trData.3$LONGITUDE)
+names(trData.3m)[l-9+1] <- "LONGITUDE"
 
 ### train model: knn(LONGITUDE ~ .), data = trData.3m 
 start_time <- Sys.time()
 LonKNN <- train(
   LONGITUDE ~ ., 
-  data = trainData.3mLon,
-  method = "knn",
-  trControl = trControl,
-  tuneGrid = tuneGrid,
-  na.action=na.exclude
-)
-end_time <- Sys.time()
-print(end_time - start_time)
-beep();
-
-# model training -- second round ####
-# ___ model: KNN
-
-## LATITUDE 
-
-### split test and training set: trainData + testData 
-trainData.3m <-trData.3m[intrain,]
-testData.3m <-trData.3m[-intrain,]
-
-### train model: knn(LATITUDE ~ .), data = trData.3m
-start_time <- Sys.time()
-LatKNN2 <- train(
-  LATITUDE ~ ., 
-  data = trainData.3m,
-  method = "knn",
-  trControl = trControl,
-  tuneGrid = tuneGrid,
-  na.action=na.exclude
-)
-end_time <- Sys.time()
-print(end_time - start_time)
-beep();
-
-## LONGITUDE
-
-### train model: knn(LONGITUDE ~ .), data = trData.3m 
-start_time <- Sys.time()
-LonKNN2 <- train(
-  LONGITUDE ~ ., 
-  data = trainData.3m,
+  data = trData.3m,
   method = "knn",
   trControl = trControl,
   tuneGrid = tuneGrid,
@@ -310,108 +275,50 @@ beep();
 ## explore results of the model
 # print(LatKNN)
 # print(LonKNN)
-# 
-print(LatKNN2)
-print(LonKNN2)
 
-## predictions -- prepare 2nd round
+## prediction: trData.3p
 
-#### prediction: trData.3p
-
-##### prediction on train data
+### prediction on train data
 # trData.3pLat <- trainData.3mLat
 # trData.3pLon <- trainData.3mLon
 
-##### prediction on test data
+### prediction on test data
 # trData.3p <- testData.3m
-# trData.3pLat <- testData.3m
-# trData.3pLon <- testData.3m
+# trData.3pLat <- testData.3mLat
+# trData.3pLon <- testData.3mLon
 
-##### prediction on validation data 
-trData.3p <- vlData.2    ## hier write predictions of both Lat and Lon
-                         ## as predLat1 and predLon1
-trData.3pLat <- vlData.2 ## -- write predictions of Lat as LATITUDE (overwriting)
-trData.3pLon <- vlData.2 ## -- write predictions of Lon as LONGITUDE (overwriting)
+### prediction on validation data 
+# trData.3p <- vlData.2
+trData.3pLat <- vlData.2
+trData.3pLon <- vlData.2
 
-### make predictions (predLat, predLon) to use during modeling
+## Lat: trData.3pLat
 
-#### Lat: trData.3pLat
-##### predict and write as factor (LATITUDE) in the prediction for Lon, trData.3pLon
 start_time <- Sys.time()
-trData.3pLat$LATITUDE <- predict(LatKNN, trData.3p)
+trData.3pLat$predLat <- predict(LatKNN, trData.3pLat)
 end_time <- Sys.time()
 print(end_time - start_time)
 beep();
 
-##### make a copy in the combined prediction as predicted Latitude 1
-trData.3p$predLat1 <- trData.3pLat$LATITUDE
+## Lon: trData.3pLon
 
-#### Lon: trData.3pLon
-##### write as factor (LONGITUDE) in the prediction for Lat, trData.3pLat
 start_time <- Sys.time()
-trData.3pLon$LONGITUDE <- predict(LonKNN, trData.3p)
+trData.3pLon$predLon <- predict(LonKNN, trData.3pLon)
 end_time <- Sys.time()
 print(end_time - start_time)
 beep();
-
-##### make a copy in the combined prediction as predicted Longitude 1
-trData.3p$predLon1 <- trData.3pLon$LONGITUDE
-
-## prediction: -- 2nd round. 
-## use predicted Lat in trData.3pLat and predicted Lon in trData.3pLon
-## to predict Lon and Lat as predLon2 and predLat2 in trData.3p
-
-## predict Lat: using predLon1 and Waps from trData.3pLon
-start_time <- Sys.time()
-trData.3p$predLat2 <- predict(LatKNN2, trData.3pLon)
-end_time <- Sys.time()
-print(end_time - start_time)
-beep();
-
-## predict Lon: using predLat1 and Waps from trData.3pLat
-start_time <- Sys.time()
-trData.3p$predLon2 <- predict(LonKNN2, trData.3pLon)
-end_time <- Sys.time()
-print(end_time - start_time)
-beep();
-
-## predict Lat: using predLon2 and Waps from trData.3pLon
-trData.3pLon$LONGITUDE <- trData.3p$predLon2 
-start_time <- Sys.time()
-trData.3p$predLat3 <- predict(LatKNN2, trData.3pLon)
-end_time <- Sys.time()
-print(end_time - start_time)
-beep();
-
-## predict Lon: using predLat2 and Waps from trData.3pLat
-# trData.3pLat$LATITUDE <- trData.3p$predLat2
-# start_time <- Sys.time()
-# trData.3p$predLon3 <- predict(LonKNN2, trData.3pLat)
-# end_time <- Sys.time()
-# print(end_time - start_time)
-# beep();
 
 ## compute errors
-postResample(trData.3p$predLat1, trData.3p$LATITUDE)
-postResample(trData.3p$predLon1, trData.3p$LONGITUDE)
+postResample(trData.3pLat$predLat, trData.3pLat$LATITUDE)
+postResample(trData.3pLon$predLon, trData.3pLon$LONGITUDE)
 
-postResample(trData.3p$predLat2, trData.3p$LATITUDE)
-postResample(trData.3p$predLon2, trData.3p$LONGITUDE)
-
-postResample(trData.3p$predLat3, trData.3p$LATITUDE)
-# postResample(trData.3p$predLon3, trData.3p$LONGITUDE)
-
-### --> best results: with predLat3 and predLon2
-
-## Compute Errors: using predLat3 and predLon2
-
-diffLAT <- abs(trData.3p$LATITUDE - trData.3p$predLat3)
-diffLON <- abs(trData.3p$LONGITUDE - trData.3p$predLon2)
+diffLAT <- abs(trData.3pLat$LATITUDE - trData.3pLat$predLat)
+diffLON <- abs(trData.3pLon$LONGITUDE - trData.3pLon$predLon)
 
 diffEUC <- sqrt(diffLON^2 + diffLAT^2)
-hist(diffEUC, breaks=90, main='KNN k=3, varCut=75, top 5, crossed pred')
+# hist(diffEUC, breaks=90, main='KNN top 5 RSSI, varCut=75')
 
-print("VAR > 75; top 5 RSSI; 2nd, 3rd round predict")
+print("Metrics for KNN, 5 RSSI")
 
 mean(diffEUC)
 median(diffEUC)
@@ -450,6 +357,14 @@ qplot(LATITUDE, LONGITUDE, data=vlData.p, color = clErr)
 # points(vlData.p$LATITUDE ~ vlData.p$LONGITUDE, col = "black", pch=4)
 
 ############################ tools ####
+#### aux function
+# f2 <- function(x) {
+#         if(any(!is.na(x))) { 
+#           M <-max(x,na.rm=T); 
+#           return(as.integer(round(x/M,2)*100)); 
+#         } 
+#         return(x)
+# }
 
 hist(vlData.2$PHONEID,breaks=25, xlim = c(1,25))
 hist(trData.3$PHONEID,breaks=25, xlim = c(1,25))
@@ -470,44 +385,48 @@ plot(raster(as.matrix(vlData.2.waps)),main="vlData.2.waps", useRaster=F)
 plot(raster(as.matrix(trData.3.waps)),main="trData.3.waps", useRaster=F)
 
 
+### function
+getEUCclass <- function(x) {
+  if(x < 5) return(as.integer(5))
+  return(NA);
+}
+### apply function, write new col with computed values
+vlData.p <- vlData.p %>% mutate(clErr = sapply(diffEUC, getEUCclass))
+
 ############################ results ####
-# > ## compute errors
-#   > postResample(trData.3p$predLat1, trData.3p$LATITUDE)
+> ## compute errors
+#   > postResample(trData.3pLat$predLat, trData.3pLat$LATITUDE)
 # RMSE  Rsquared       MAE 
-# 8.0642764 0.9868474 5.1032103 
-# > postResample(trData.3p$predLon1, trData.3p$LONGITUDE)
-# RMSE  Rsquared       MAE 
-# 8.3421672 0.9952084 5.3157066 
-# > postResample(trData.3p$predLat2, trData.3p$LATITUDE)
-# RMSE  Rsquared       MAE 
-# 8.2888631 0.9861157 5.1152865 
-# > postResample(trData.3p$predLon2, trData.3p$LONGITUDE)
-# RMSE  Rsquared       MAE 
-# 8.2471601 0.9953181 5.1882838 
-# > postResample(trData.3p$predLat3, trData.3p$LATITUDE)
-# RMSE Rsquared      MAE 
-# 7.775415 0.987771 4.953720 
-# > diffLAT <- abs(trData.3p$LATITUDE - trData.3p$predLat3)
-# > diffLON <- abs(trData.3p$LONGITUDE - trData.3p$predLon2)
-# > diffEUC <- sqrt(diffLON^2 + diffLAT^2)
-# > hist(diffEUC, breaks=90, main='KNN k=3, varCut=75')
-# > print("Metrics for VAR > 75, top 5 WAPS, KNN (k=3)")
-# [1] "Metrics for VAR > 75, top 5 WAPS, KNN (k=3)"
-# > mean(diffEUC)
-# [1] 7.995697
+# 9.0390287 0.9834956 5.1509901 
+# > postResample(trData.3pLon$predLon, trData.3pLon$LONGITUDE)
+# RMSE   Rsquared        MAE 
+# 10.4266721  0.9924972  5.4424692 
+# > 
+#   > diffLAT <- abs(trData.3pLat$LATITUDE - trData.3pLat$predLat)
+# > diffLON <- abs(trData.3pLon$LONGITUDE - trData.3pLon$predLon)
+# > 
+#   > diffEUC <- sqrt(diffLON^2 + diffLAT^2)
+# > # hist(diffEUC, breaks=90, main='KNN top 5 RSSI, varCut=75')
+#   > 
+#   > print("Metrics for KNN, 5 RSSI")
+# [1] "Metrics for KNN, 5 RSSI"
+# > 
+#   > mean(diffEUC)
+# [1] 8.281988
 # > median(diffEUC)
-# [1] 5.705748
+# [1] 5.426274
 # > max(diffEUC)
-# [1] 79.83594
-# > quantile(diffEUC, 0.75)
+# [1] 162.9119
+# > 
+#   > quantile(diffEUC, 0.75)
 # 75% 
-# 10.80637 
+# 10.36821 
 # > quantile(diffEUC, 0.90)
 # 90% 
-# 17 
+# 17.18203 
 # > quantile(diffEUC, 0.95)
 # 95% 
-# 21.84414 
+# 22.96978 
 # > quantile(diffEUC, 0.99)
 # 99% 
-# 36.55406 
+# 40.71268 

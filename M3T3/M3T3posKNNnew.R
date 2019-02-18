@@ -186,8 +186,8 @@ beep();
 # model evaluation ####
 
 ## explore results of the model
-# print(LatKNN)
-# print(LonKNN)
+print(LatKNN)
+print(LonKNN)
 
 ## prediction: trData.3p
 

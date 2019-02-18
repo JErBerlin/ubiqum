@@ -265,7 +265,7 @@ beep();
 
 ## explore results of the model
 # print(LatKNN)
-# print(LonKNN)
+print(LonKNN)
 
 ## prediction: trData.3p
 
@@ -307,7 +307,7 @@ diffLAT <- abs(trData.3pLat$LATITUDE - trData.3pLat$predLat)
 diffLON <- abs(trData.3pLon$LONGITUDE - trData.3pLon$predLon)
 
 diffEUC <- sqrt(diffLON^2 + diffLAT^2)
-# hist(diffEUC, breaks=90, main='KNN k=3, top 3 RSSI, varCut=75')
+hist(diffEUC, breaks=90, main='KNN k=3, top 3 RSSI, varCut=75')
 
 print("Metrics for KNN, 3 RSSI")
 

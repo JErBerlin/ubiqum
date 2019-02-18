@@ -274,7 +274,7 @@ beep();
 
 ## explore results of the model
 # print(LatKNN)
-# print(LonKNN)
+print(LonKNN)
 
 ## prediction: trData.3p
 
@@ -316,7 +316,7 @@ diffLAT <- abs(trData.3pLat$LATITUDE - trData.3pLat$predLat)
 diffLON <- abs(trData.3pLon$LONGITUDE - trData.3pLon$predLon)
 
 diffEUC <- sqrt(diffLON^2 + diffLAT^2)
-# hist(diffEUC, breaks=90, main='KNN top 5 RSSI, varCut=75')
+hist(diffEUC, breaks=90, main='KNN top 5 RSSI, varCut=75')
 
 print("Metrics for KNN, 5 RSSI")
 
@@ -394,54 +394,39 @@ getEUCclass <- function(x) {
 vlData.p <- vlData.p %>% mutate(clErr = sapply(diffEUC, getEUCclass))
 
 ############################ results ####
-# > postResample(trData.3pLat$predLat, trData.3pLat$LATITUDE)
+> ## compute errors
+#   > postResample(trData.3pLat$predLat, trData.3pLat$LATITUDE)
 # RMSE  Rsquared       MAE 
 # 8.0600773 0.9868561 5.0940594 
 # > postResample(trData.3pLon$predLon, trData.3pLon$LONGITUDE)
-# RMSE Rsquared      MAE 
-# 8.276510 0.995285 5.199970 
-# > diffLAT <- abs(trData.3pLat$LATITUDE - trData.3pLat$predLat)
+# RMSE  Rsquared       MAE 
+# 8.3631166 0.9951846 5.3198320 
+# > 
+#   > diffLAT <- abs(trData.3pLat$LATITUDE - trData.3pLat$predLat)
 # > diffLON <- abs(trData.3pLon$LONGITUDE - trData.3pLon$predLon)
-# > diffEUC <- sqrt(diffLON^2 + diffLAT^2)
-# > hist(diffEUC, breaks=90, main='KNN k=3, varCut=75')
-# > print("Metrics for KNN, k=3")
-# [1] "Metrics for KNN, k=3"
-# > mean(diffEUC)
-# [1] 8.126635
-# > median(diffEUC)
-# [1] 5.830952
-# > max(diffEUC)
-# [1] 79.83594
-# > quantile(diffEUC, 0.75)
-# 75% 
-# 11.05791 
-# > quantile(diffEUC, 0.90)
-# 90% 
-# 17.15938 
-# > quantile(diffEUC, 0.95)
-# 95% 
-# 22.31952 
-# > quantile(diffEUC, 0.99)
-# 99% 
-# 37.01953 
-# > hist(diffEUC, breaks=90, main='KNN 5 RSSI, varCut=75')
-# > print("Metrics for KNN, 5 RSSI")
+# > 
+#   > diffEUC <- sqrt(diffLON^2 + diffLAT^2)
+# > # hist(diffEUC, breaks=90, main='KNN top 5 RSSI, varCut=75')
+#   > 
+#   > print("Metrics for KNN, 5 RSSI")
 # [1] "Metrics for KNN, 5 RSSI"
-# > mean(diffEUC)
-# [1] 8.126635
+# > 
+#   > mean(diffEUC)
+# [1] 8.188408
 # > median(diffEUC)
-# [1] 5.830952
+# [1] 6
 # > max(diffEUC)
-# [1] 79.83594
-# > quantile(diffEUC, 0.75)
+# [1] 86.83317
+# > 
+#   > quantile(diffEUC, 0.75)
 # 75% 
-# 11.05791 
+# 11.14045 
 # > quantile(diffEUC, 0.90)
 # 90% 
 # 17.15938 
 # > quantile(diffEUC, 0.95)
 # 95% 
-# 22.31952 
+# 22.29717 
 # > quantile(diffEUC, 0.99)
 # 99% 
-# 37.01953 
+# 38.54695 
