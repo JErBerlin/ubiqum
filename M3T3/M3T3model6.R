@@ -1,4 +1,4 @@
-#### M3T3d2latAsPred.R -- approach B: 
+#### M3T3model6.R 
 #
 # - exclude variables with too low variability
 # - model position (latitude, longitude) as numeric (integers)
@@ -18,12 +18,6 @@
 # load libraries ####
 library(dplyr)
 library(caret)
-
-library(reshape2)
-library(ggplot2)
-library(raster) 
-
-library(beepr)
 
 # read data ####
 ## training and test set

@@ -44,16 +44,6 @@ trData[trData==100]<--110
 
 vlData[vlData==100]<--110
 
-# -0.1- # 
-# _____type conversion of target variable (rounding)
-## convert vars LATITUDE and LONGITUDE to integers
-trData$LATITUDE  <- as.integer(trData$LATITUDE)
-trData$LONGITUDE <- as.integer(trData$LONGITUDE)
-
-vlData$LATITUDE  <- as.integer(vlData$LATITUDE)
-vlData$LONGITUDE <- as.integer(vlData$LONGITUDE)
-
-
 # -1- # 
 # _____clean of empty rows and cols #
 ## keep only WASP cols that have NOT all values 100 (no signal) 
@@ -116,6 +106,15 @@ trData.3 <- trData.2[!ind,]
 trData.waps.3 <- trData.waps.3.dist
 # dim(trData.3)
 # dim(vlData.2)
+
+# -11- # 
+# _____type conversion of target variable (rounding)
+## convert vars LATITUDE and LONGITUDE to integers
+trData$LATITUDE  <- as.integer(trData$LATITUDE)
+trData$LONGITUDE <- as.integer(trData$LONGITUDE)
+
+vlData$LATITUDE  <- as.integer(vlData$LATITUDE)
+vlData$LONGITUDE <- as.integer(vlData$LONGITUDE)
 
 # model training -- first round ####
 # ___ model: KNN
@@ -347,22 +346,22 @@ vlData.p <- cbind(vlData.p, diffEUC)
 
 ### classificate errors in 4 classes: <5, <10, <20, > 20 error
 ### write as a new col in the df prediction
-getEUCclass <- function(x) {
-  if(x < 5) return(as.integer(5))
-  if(x < 10) return(as.integer(10));
-  if(x < 20) return(as.integer(20));
-  if(x >= 20) return(as.integer(40));
-  return(NA);
-}
+# getEUCclass <- function(x) {
+#   if(x < 5) return(as.integer(5))
+#   if(x < 10) return(as.integer(10));
+#   if(x < 20) return(as.integer(20));
+#   if(x >= 20) return(as.integer(40));
+#   return(NA);
+#}
 # clEUC <- sapply(diffEUC, getEUCclass)
 # vlData.p <- cbind(vlData.p, diffEUC)
-vlData.p <- vlData.p %>% mutate(clErr = sapply(diffEUC, getEUCclass))
-
-qplot(LATITUDE, predLat, data=vlData.p, color = clErr)
-qplot(LONGITUDE, predLon, data=vlData.p, color = clErr)
-
-qplot(predLat, predLon, data=vlData.p, color = clErr)
-qplot(LATITUDE, LONGITUDE, data=vlData.p, color = clErr)
+# vlData.p <- vlData.p %>% mutate(clErr = sapply(diffEUC, getEUCclass))
+# 
+# qplot(LATITUDE, predLat, data=vlData.p, color = clErr)
+# qplot(LONGITUDE, predLon, data=vlData.p, color = clErr)
+# 
+# qplot(predLat, predLon, data=vlData.p, color = clErr)
+# qplot(LATITUDE, LONGITUDE, data=vlData.p, color = clErr)
 
 # plot(predLat ~ predLon, col="red", data=vlData.p, pch=16)
 # points(vlData.p$LATITUDE ~ vlData.p$LONGITUDE, col = "black", pch=4)

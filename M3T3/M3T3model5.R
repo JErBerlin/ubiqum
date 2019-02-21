@@ -1,4 +1,4 @@
-#### M3T3d2latAsPred.R
+#### M3T3model5.R
 #
 # - exclude variables with too low variability
 # - model position (latitude, longitude) as numeric (integers)
